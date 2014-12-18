@@ -18,7 +18,7 @@ class flowAPI {
     $this->order["OrdenNumero"] = "";
     $this->order["Concepto"]    = "";
     $this->order["Monto"]       = "";
-    $this->order["Comision"]    = sfConfig::get('app_flow_tasa_default',2);
+    $this->order["Comision"]    = sfConfig::get('app_flowpagos_tasa_default',2);
     $this->order["FlowNumero"]  = "";
     $this->order["Pagador"]     = "";
     $this->order["Status"]      = "";
@@ -152,7 +152,7 @@ class flowAPI {
       $this->flow_log("Error: No se pasaron todos los parámetros obligatorios","new_order");
     }
     if(empty($tipo_comision)) {
-      $tipo_comision = sfConfig::get('app_flow_tasa_default',2);
+      $tipo_comision = sfConfig::get('app_flowpagos_tasa_default',2);
     }
     if(!is_numeric($monto)) {
       $this->flow_log("Error: El parámetro monto de la orden debe ser numérico","new_order");
@@ -222,7 +222,7 @@ class flowAPI {
     $r = ($result) ? "ACEPTADO" : "RECHAZADO";
     $data = array();
     $data["status"] = $r;
-    $data["c"] = sfConfig::get('app_flow_comercio');
+    $data["c"] = sfConfig::get('app_flowpagos_comercio');
     $q = http_build_query($data);
     $s = $this->flow_sign($q);
     $this->flow_log("Orden N°: ".$this->order["OrdenNumero"]. " - Status: $r","flow_build_response");
@@ -248,7 +248,7 @@ class flowAPI {
       $this->flow_log("firma invalida", "read_result");
       throw new Exception('Invalid signature from Flow');
     }
-    $this->order["Comision"] = sfConfig::get('app_flow_tasa_default',2);
+    $this->order["Comision"] = sfConfig::get('app_flowpagos_tasa_default',2);
     $this->order["Status"] = "";
     $this->order["Error"] = "";
     $this->order['OrdenNumero'] = $params['kpf_orden'];
@@ -265,7 +265,7 @@ class flowAPI {
   * @param string $type Identificador del mensaje
   */
   public function flow_log($message, $type) {
-    $file = @fopen(sfConfig::get('app_flow_log_path') . "/flowLog_" . date("Y-m-d") .".txt" , "a+");
+    $file = @fopen(sfConfig::get('app_flowpagos_log_path') . "/flowLog_" . date("Y-m-d") .".txt" , "a+");
     @fwrite($file, "[".date("Y-m-d H:i:s.u")." ".$_SERVER['REMOTE_ADDR']." - $type ] ".$message . PHP_EOL);
     @fclose($file);
   }
@@ -286,11 +286,17 @@ class flowAPI {
   }
 
   private function flow_get_private_key_id() {
-    if (!is_file(sfConfig::get('app_flow_key'))) {
+
+    if (!sfConfig::get('app_flowpagos_key')) {
       throw new Exception("Clave privada de Comercio Flow no definida.");
     }
+
+    if (!is_file(sfConfig::get('app_flowpagos_key'))) {
+      throw new Exception("Clave privada de Comercio Flow no se puede leer.");
+    }
+
     try {
-      $fp = fopen(sfConfig::get('app_flow_key'), "r");
+      $fp = fopen(sfConfig::get('app_flowpagos_key'), "r");
       $priv_key = fread($fp, 8192);
       fclose($fp);
       return openssl_get_privatekey($priv_key);
@@ -318,14 +324,14 @@ class flowAPI {
   }
 
   private function flow_pack() {
-    $comercio = urlencode(sfConfig::get('app_flow_comercio'));
+    $comercio = urlencode(sfConfig::get('app_flowpagos_comercio'));
     $orden_compra = urlencode($this->order["OrdenNumero"]);
     $monto = urlencode($this->order["Monto"]);
     $tipo_comision = urlencode($this->order["Comision"]);
     $concepto = urlencode(htmlentities(utf8_decode($this->order["Concepto"])));
-    $url_exito = urlencode(sfConfig::get('app_flow_url_exito'));
-    $url_fracaso = urlencode(sfConfig::get('app_flow_url_fracaso'));
-    $url_confirmacion = urlencode(sfConfig::get('app_flow_url_confirmacion'));
+    $url_exito = urlencode(sfConfig::get('app_flowpagos_url_exito'));
+    $url_fracaso = urlencode(sfConfig::get('app_flowpagos_url_fracaso'));
+    $url_confirmacion = urlencode(sfConfig::get('app_flowpagos_url_confirmacion'));
     $p = "c=$comercio&oc=$orden_compra&tc=$tipo_comision&m=$monto&o=$concepto&ue=$url_exito&uf=$url_fracaso&uc=$url_confirmacion";
     $signature = $this->flow_sign($p);
     $this->flow_log("Orden N°: ".$this->order["OrdenNumero"]. " -empaquetado correcto","flow_pack");

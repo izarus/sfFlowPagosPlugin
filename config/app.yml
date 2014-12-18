@@ -1,20 +1,19 @@
 all:
-  flow:
+  flowpagos:
     url_exito: 'URL/exito'
     url_fracaso: 'URL/fracaso'
     url_confirmacion: 'URL/confirmar'
-    url_pago: 'http://flow.tuxpan.com/app/kpf/pago.php'
-    key: '<?php sfConfig::get("sf_data_dir") ?>/keys/comercio.pem'
-    log_path: '<?php sfConfig::get("sf_log_dir") ?>'
+    url_pago: 'http://flow.tuxpan.com/app/kpf/pago.php' #DEV
+    key: %SF_DATA_DIR%/keys/comercio.pem
+    log_path: %SF_LOG_DIR%
     comercio: 'email@comercio-dev.com'
-
     ## TASA COMISION
     ## Pago siguiente día hábil = 1 (Expreso)
     ## Pago a tres días hábiles = 2 (Veloz)
     ## Pago a cinco días hábiles = 3 (Normal)
     tasa_default: 2
 
-prod:
-  flow:
-    #url_pago: 'http://www.flow.cl/app/kpf/pago.php'
-    #comercio: 'email@comercio-prod.com'
+# prod:
+  # flowpagos:
+    # url_pago: 'http://www.flow.cl/app/kpf/pago.php'
+    # comercio: 'email@comercio-prod.com'
