@@ -12,8 +12,12 @@ all:
     ## Pago a tres días hábiles = 2 (Veloz)
     ## Pago a cinco días hábiles = 3 (Normal)
     tasa_default: 2
+    ## TIPO INTEGRACION
+    ## 'f': mostrar pasarela Flow
+    ## 'd': directo a webpay
+    tipo_integracion: 'f'
 
 # prod:
   # flowpagos:
-    # url_pago: 'http://www.flow.cl/app/kpf/pago.php'
+    # url_pago: 'https://www.flow.cl/app/kpf/pago.php'
     # comercio: 'email@comercio-prod.com'

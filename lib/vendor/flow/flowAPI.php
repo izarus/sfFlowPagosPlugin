@@ -3,10 +3,10 @@
 /*******************************************************************************
 * flowAPI                                                                       *
 *                                                                               *
-* Version: 1.0                                                                  *
-* Date:    2014-02-20                                                           *
+* Version: 1.1                                                                  *
+* Date:    2015-02-13                                                          *
 * Author:  flow.cl
-* Modified by: izarus.cl  (20-10-2014)                                          *
+* Modified by: izarus.cl  (23-02-2015)                                          *
 ********************************************************************************/
 
 class flowAPI {
@@ -146,12 +146,12 @@ class flowAPI {
   * @param mixed $tipo_comision La comision de Flow (1,2,3)
   * @return string flow_pack Paquete de datos firmados listos para ser enviados a Flow
   */
-  public function new_order($orden_compra, $monto,  $concepto, $tipo_comision = null) {
+  public function new_order($orden_compra, $monto,  $concepto, $email_pagador, $tipo_comision = "Non") {
     $this->flow_log("Iniciando nueva Orden", "new_order");
     if(!isset($orden_compra,$monto,$concepto)) {
       $this->flow_log("Error: No se pasaron todos los parámetros obligatorios","new_order");
     }
-    if(empty($tipo_comision)) {
+    if($tipo_comision == "Non") {
       $tipo_comision = sfConfig::get('app_flowpagos_tasa_default',2);
     }
     if(!is_numeric($monto)) {
@@ -162,6 +162,7 @@ class flowAPI {
     $this->order["Concepto"] = $concepto;
     $this->order["Monto"] = $monto;
     $this->order["Comision"] = $tipo_comision;
+    $this->order["Pagador"] = $email_pagador;
     return $this->flow_pack();
   }
 
@@ -213,12 +214,14 @@ class flowAPI {
 
   }
 
+
   /**
   * Método para responder a Flow el resultado de la confirmación del comercio
   * @param bool $result (true: Acepta el pago, false rechaza el pago)
   * @return string paquete firmado para enviar la respuesta del comercio
   */
   public function build_response($result){
+    global $flow_comercio;
     $r = ($result) ? "ACEPTADO" : "RECHAZADO";
     $data = array();
     $data["status"] = $r;
@@ -332,9 +335,16 @@ class flowAPI {
     $url_exito = urlencode(sfConfig::get('app_flowpagos_url_exito'));
     $url_fracaso = urlencode(sfConfig::get('app_flowpagos_url_fracaso'));
     $url_confirmacion = urlencode(sfConfig::get('app_flowpagos_url_confirmacion'));
-    $p = "c=$comercio&oc=$orden_compra&tc=$tipo_comision&m=$monto&o=$concepto&ue=$url_exito&uf=$url_fracaso&uc=$url_confirmacion";
+    $tipo_integracion = urlencode(sfConfig::get('app_flowpagos_tipo_integracion','f'));
+    $email = urlencode($this->order["Pagador"]);
+    $hConcepto = htmlentities($this->order["Concepto"]);
+    if (!$hConcepto) $hConcepto = htmlentities($concepto, ENT_COMPAT | ENT_HTML401, 'UTF-8');
+    if (!$hConcepto) $hConcepto = htmlentities($concepto, ENT_COMPAT | ENT_HTML401, 'ISO-8859-1');
+    if (!$hConcepto) $hConcepto = "Orden de Compra $orden_compra";
+    $concepto = urlencode($hConcepto);
+    $p = "c=$comercio&oc=$orden_compra&tc=$tipo_comision&m=$monto&o=$concepto&ue=$url_exito&uf=$url_fracaso&uc=$url_confirmacion&ti=$tipo_integracion&e=$email&v=kit_1_1";
     $signature = $this->flow_sign($p);
-    $this->flow_log("Orden N°: ".$this->order["OrdenNumero"]. " -empaquetado correcto","flow_pack");
+    $this->flow_log("Orden N°: ".$this->order["OrdenNumero"]. " - empaquetado correcto","flow_pack");
     return $p."&s=$signature";
   }
 
