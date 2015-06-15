@@ -3,10 +3,10 @@
 /*******************************************************************************
 * flowAPI                                                                       *
 *                                                                               *
-* Version: 1.1                                                                  *
-* Date:    2015-02-13                                                          *
+* Version: 1.2                                                                 *
+* Date:    2015-05-25                                                          *
 * Author:  flow.cl
-* Modified by: izarus.cl  (23-02-2015)                                          *
+* Modified by: izarus.cl  (15-06-2015)                                          *
 ********************************************************************************/
 
 class flowAPI {
@@ -18,7 +18,7 @@ class flowAPI {
     $this->order["OrdenNumero"] = "";
     $this->order["Concepto"]    = "";
     $this->order["Monto"]       = "";
-    $this->order["Comision"]    = sfConfig::get('app_flowpagos_tasa_default',2);
+    $this->order["Mediopago"]   = "";
     $this->order["FlowNumero"]  = "";
     $this->order["Pagador"]     = "";
     $this->order["Status"]      = "";
@@ -65,18 +65,37 @@ class flowAPI {
   }
 
   /**
-  * Set la tasa de comisión
-  * @param int $comision La comisión Flow del pago
+  * Set Medio de Pago, por default el Medio de Pago será el configurada
+  *
+  * @param string $medio El Medio de Pago de esta orden
+  *
   * @return bool (true/false)
   */
-  public function setRate($comision) {
-    if(!empty($comision) && ($comision == 1 || $comision == 2 || $comision == 3)) {
-      $this->order["Comision"] = $comision;
+  public function setMedio($medio) {
+    if(!empty($medio)) {
+      $this->order["MedioPago"] = $medio;
       return TRUE;
     } else {
       return FALSE;
     }
   }
+
+  /**
+   * Set pagador, el email del pagador de esta orden
+   *
+   * @param string $email El email del pagador de la orden
+   *
+   * @return bool (true/false)
+   */
+  public function setPagador($email) {
+    if(!empty($email)) {
+      $this->order["Pagador"] = $email;
+      return TRUE;
+    } else {
+      return FALSE;
+    }
+  }
+
 
 
   // Metodos GET
@@ -106,11 +125,12 @@ class flowAPI {
   }
 
   /**
-  * Get la comisión Flow de Orden del Comercio
-  * @return string la tasa de la Orden del comercio
+  * Get el Medio de Pago para de Orden del Comercio
+  *
+  * @return string el Medio de pago de esta Orden del comercio
   */
-  public function getRate() {
-    return $this->order["Comision"];
+  public function getMedio() {
+    return $this->order["MedioPago"];
   }
 
   /**
@@ -144,15 +164,17 @@ class flowAPI {
   * @param string $monto El monto de Orden de Compra del Comercio
   * @param string $concepto El concepto de Orden de Compra del Comercio
   * @param mixed $tipo_comision La comision de Flow (1,2,3)
+  * @param mixed $medio_pago El Medio de Pago (1,2,9)
+  *
   * @return string flow_pack Paquete de datos firmados listos para ser enviados a Flow
   */
-  public function new_order($orden_compra, $monto,  $concepto, $email_pagador, $tipo_comision = "Non") {
+  public function new_order($orden_compra, $monto,  $concepto, $email_pagador, $medio_pago = "Non") {
     $this->flow_log("Iniciando nueva Orden", "new_order");
     if(!isset($orden_compra,$monto,$concepto)) {
       $this->flow_log("Error: No se pasaron todos los parámetros obligatorios","new_order");
     }
-    if($tipo_comision == "Non") {
-      $tipo_comision = sfConfig::get('app_flowpagos_tasa_default',2);
+    if($medio_pago == "Non") {
+      $medio_pago = sfConfig::get('app_flowpagos_mediopago',9);
     }
     if(!is_numeric($monto)) {
       $this->flow_log("Error: El parámetro monto de la orden debe ser numérico","new_order");
@@ -161,7 +183,7 @@ class flowAPI {
     $this->order["OrdenNumero"] = $orden_compra;
     $this->order["Concepto"] = $concepto;
     $this->order["Monto"] = $monto;
-    $this->order["Comision"] = $tipo_comision;
+    $this->order["MedioPago"] = $medio_pago;
     $this->order["Pagador"] = $email_pagador;
     return $this->flow_pack();
   }
@@ -211,6 +233,9 @@ class flowAPI {
       $this->order['FlowNumero'] = $params['kpf_flow_order'];
       $this->flow_log("Lee Orden Flow: " . $params['kpf_flow_order'], "read_confirm");
     }
+    if(isset($params['kpf_pagador'])) {
+      $this->order['Pagador'] = $params['kpf_pagador'];
+    }
 
   }
 
@@ -251,7 +276,6 @@ class flowAPI {
       $this->flow_log("firma invalida", "read_result");
       throw new Exception('Invalid signature from Flow');
     }
-    $this->order["Comision"] = sfConfig::get('app_flowpagos_tasa_default',2);
     $this->order["Status"] = "";
     $this->order["Error"] = "";
     $this->order['OrdenNumero'] = $params['kpf_orden'];
@@ -330,19 +354,19 @@ class flowAPI {
     $comercio = urlencode(sfConfig::get('app_flowpagos_comercio'));
     $orden_compra = urlencode($this->order["OrdenNumero"]);
     $monto = urlencode($this->order["Monto"]);
-    $tipo_comision = urlencode($this->order["Comision"]);
     $concepto = urlencode(htmlentities(utf8_decode($this->order["Concepto"])));
     $url_exito = urlencode(sfConfig::get('app_flowpagos_url_exito'));
     $url_fracaso = urlencode(sfConfig::get('app_flowpagos_url_fracaso'));
     $url_confirmacion = urlencode(sfConfig::get('app_flowpagos_url_confirmacion'));
-    $tipo_integracion = urlencode(sfConfig::get('app_flowpagos_tipo_integracion','f'));
+    $tipo_integracion = urlencode(sfConfig::get('app_flowpagos_tipo_integracion','d'));
+    $medio_pago = urlencode($this->order["MedioPago"]);
     $email = urlencode($this->order["Pagador"]);
     $hConcepto = htmlentities($this->order["Concepto"]);
     if (!$hConcepto) $hConcepto = htmlentities($concepto, ENT_COMPAT | ENT_HTML401, 'UTF-8');
     if (!$hConcepto) $hConcepto = htmlentities($concepto, ENT_COMPAT | ENT_HTML401, 'ISO-8859-1');
     if (!$hConcepto) $hConcepto = "Orden de Compra $orden_compra";
     $concepto = urlencode($hConcepto);
-    $p = "c=$comercio&oc=$orden_compra&tc=$tipo_comision&m=$monto&o=$concepto&ue=$url_exito&uf=$url_fracaso&uc=$url_confirmacion&ti=$tipo_integracion&e=$email&v=kit_1_1";
+    $p = "c=$comercio&oc=$orden_compra&mp=$medio_pago&m=$monto&o=$concepto&ue=$url_exito&uf=$url_fracaso&uc=$url_confirmacion&ti=$tipo_integracion&e=$email&v=kit_1_2";
     $signature = $this->flow_sign($p);
     $this->flow_log("Orden N°: ".$this->order["OrdenNumero"]. " - empaquetado correcto","flow_pack");
     return $p."&s=$signature";

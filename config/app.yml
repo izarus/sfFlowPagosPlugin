@@ -7,15 +7,21 @@ all:
     key: %SF_DATA_DIR%/keys/comercio.pem
     log_path: %SF_LOG_DIR%
     comercio: 'email@comercio-dev.com'
+
     ## TASA COMISION
-    ## Pago siguiente día hábil = 1 (Expreso)
-    ## Pago a tres días hábiles = 2 (Veloz)
-    ## Pago a cinco días hábiles = 3 (Normal)
-    tasa_default: 2
-    ## TIPO INTEGRACION
+    ## Ahora se modifica en sitio de usuario Flow
+    ##
+
+    ## TIPO INTEGRACION WEBPAY (solo funciona si solo webpay está seleccionado)
     ## 'f': mostrar pasarela Flow
     ## 'd': directo a webpay
-    tipo_integracion: 'f'
+    tipo_integracion: 'd'
+
+    ## MEDIOS DE PAGO
+    ## Solo Webpay = 1
+    ## Solo Servipag = 2
+    ## Todos los medios de pago = 9
+    mediopago: 9
 
 # prod:
   # flowpagos:
